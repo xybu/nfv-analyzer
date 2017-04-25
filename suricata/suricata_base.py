@@ -35,17 +35,23 @@ class SuritacaTestBase(test_base.TestBase):
 
     def delete_tmpdir(self):
         """ Delete temporary directories on local and remote hosts. """
+        logging.info('Deleting local directory "%s".', self.local_tmpdir)
         subprocess.call(['rm', '-rf', self.local_tmpdir])
+        logging.info('Deleting remote directory "%s".', self.remote_tmpdir)
         self.simple_call(['rm', '-rf', self.remote_tmpdir])
 
     def create_tmpdir(self):
         """ Create temporary directories on local and remote hosts. """
+        logging.info('Creating local directory "%s".', self.local_tmpdir)
         subprocess.call(['mkdir', '-p', self.local_tmpdir])
+        logging.info('Creating remote directory "%s".', self.remote_tmpdir)
         self.simple_call(['mkdir', '-p', self.remote_tmpdir])
 
     def commit_dir(self):
         """ Send directories to data repository server. """
+        logging.info('Committing local tmpdir.')
         self.commit_local_dir(self.local_tmpdir, self.data_repo.repo_user, self.data_repo.repo_host, self.data_repo.repo_dir)
+        logging.info('Committing remote tmpdir.')
         self.commit_remote_dir(self.remote_tmpdir, self.data_repo.repo_user, self.data_repo.repo_host, self.data_repo.repo_dir)
 
     def wait_for_suricata(self, wait_sec=4):

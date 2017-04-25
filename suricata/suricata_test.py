@@ -8,6 +8,7 @@
 import logging
 import os
 import signal
+import spur
 import subprocess
 import sys
 import time
@@ -27,17 +28,33 @@ class SuricataTest(suricata_base.SuritacaTestBase):
         self.iperf_server_cmd = ['iperf3'] + list(iperf_server_args)
         self.iperf_client_cmd = ['iperf3'] + list(iperf_client_args)
 
+    def pre_cleanup(self):
+        self.simple_call(['sudo', 'pkill', '-15', 'iperf3'])
+        self.simple_call(['sudo', 'pkill', '-15', 'Suricata-Main'])
+
+    def post_cleanup(self):
+        pass
+
     def test_iperf(self):
         logging.info('Running iperf.')
         iperf_server_proc = self.shell.spawn(self.iperf_server_cmd,
-                                             cwd=self.remote_tmpdir, store_pid=True, allow_error=True,
-                                             stdout=sys.stdout.buffer, stderr=sys.stdout.buffer)
+                                             cwd=self.remote_tmpdir,
+                                             store_pid=True, allow_error=True)
         time.sleep(2)
+        if not iperf_server_proc.is_running():
+            logging.error('Iperf server is not running!')
+            return -1
+        logging.info('Running iperf client.')
         retval = subprocess.call(self.iperf_client_cmd, cwd=self.local_tmpdir)
+        logging.info('Iperf client finished.')
         if retval != 0:
             logging.error('iperf client exit with %d. Command: \"%s\".', retval, self.iperf_client_cmd)
+        logging.info('Terminating iperf server.')
         iperf_server_proc.send_signal(signal.SIGTERM)
-        iperf_server_proc.wait_for_result()
+        try:
+            iperf_server_proc.wait_for_result()
+        except spur.spur.RunProcessError as e:
+            if e.return_code == 1: return retval
         return retval
 
     def run(self):
@@ -46,8 +63,9 @@ class SuricataTest(suricata_base.SuritacaTestBase):
         logging.info('Initializing temp directories.')
         self.delete_tmpdir()
         self.create_tmpdir()
+        self.pre_cleanup()
         logging.info('Spawning resmon and suricata.')
-        with self.shell.open(os.path.join(self.remote_tmpdir, 'suricata_out.txt'), 'wb') as f:
+        with open(os.path.join(self.local_tmpdir, 'suricata_out.txt'), 'wb') as f:
             self.sysmon_proc = self.shell.spawn(['sudo', 'resmon',
                                                  '--delay', str(self.stat_delay_sec),
                                                  '--outfile', 'sysstat.receiver.csv',
@@ -66,3 +84,4 @@ class SuricataTest(suricata_base.SuritacaTestBase):
             self.commit_local_dir(self.local_tmpdir, self.data_repo.repo_user, self.data_repo.repo_host, self.data_repo.repo_dir)
             self.commit_remote_dir(self.remote_tmpdir, self.data_repo.repo_user, self.data_repo.repo_host, self.data_repo.repo_dir)
             self.delete_tmpdir()
+        self.post_cleanup()

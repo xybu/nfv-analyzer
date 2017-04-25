@@ -9,8 +9,8 @@ from . import models
 from . import suricata_test
 
 swappiness = 10
-data_repo = models.DataRepository(repo_host='cap08.cs.purdue.edu', repo_user='bu1', repo_dir='/scratch2/bu1')
-receiver_host = models.ReceiverHost(host='192.168.0.13', user='bu1', nic='enp34s0', tmpdir_root='/tmp')
+data_repo = models.DataRepository(repo_host='cap08', repo_user='bu1', repo_dir='/scratch/bu1/525')
+receiver_host = models.ReceiverHost(host='192.168.0.13', user='root', nic='enp34s0', tmpdir_root='/tmp')
 sender_host = models.SenderHost(nic='enp34s0', tmpdir_root='/tmp')
 
 SuricataTestCase = namedtuple('SuricataTestCase',
@@ -22,10 +22,10 @@ SuricataTestCase = namedtuple('SuricataTestCase',
                                ))
 
 all_tests = (
-    SuricataTestCase(name='1worker_10M_30s', stat_delay_sec=1,
+    SuricataTestCase(name='1worker_10M_10s', stat_delay_sec=1,
                      suricata_config_file='suricata.yaml',
                      iperf_server_args=('-s', '--port', '5201', '--interval', '10'),
-                     iperf_client_args=('-c', receiver_host.host, '--port', '5201', '--bandwidth', '10M', '--time', '30')),
+                     iperf_client_args=('-c', receiver_host.host, '--port', '5201', '--bandwidth', '10M', '--time', '10')),
 )
 
 
@@ -36,8 +36,10 @@ def runtest(testcase):
     """
     logging.info('Start test case "%s".', testcase.name)
     start_time = int(time.time())
-    local_tmpdir = os.path.join(sender_host.tmpdir_root, str(start_time) + '_' + testcase.name)
-    remote_tmpdir = os.path.join(receiver_host.tmpdir_root, str(start_time) + '_' + testcase.name)
+    test_inst = str(start_time) + '_' + testcase.name
+    local_tmpdir = os.path.join(sender_host.tmpdir_root, test_inst)
+    remote_tmpdir = os.path.join(receiver_host.tmpdir_root, test_inst)
+    repo_dir = os.path.join(data_repo.repo_dir, test_inst)
     iperf_server_args = list(testcase.iperf_server_args)
     iperf_server_args.extend(['-J', '--logfile', os.path.join(remote_tmpdir, 'iperf_server.json')])
     iperf_client_args = list(testcase.iperf_client_args)
@@ -45,7 +47,7 @@ def runtest(testcase):
     tester = suricata_test.SuricataTest(remote_host=receiver_host.host, remote_user=receiver_host.user,
                                         local_out_nic=sender_host.nic, remote_in_nic=receiver_host.nic,
                                         local_tmpdir=local_tmpdir, remote_tmpdir=remote_tmpdir,
-                                        data_repo=data_repo,
+                                        data_repo=data_repo._replace(),
                                         stat_delay_sec=testcase.stat_delay_sec,
                                         suricata_config_file=testcase.suricata_config_file,
                                         iperf_server_args=iperf_server_args, iperf_client_args=iperf_client_args)
@@ -54,7 +56,7 @@ def runtest(testcase):
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG, format='[%(asctime)-15s] %(levelname)s: %(threadName)s: %(message)s')
+    logging.basicConfig(level=logging.INFO, format='[%(asctime)-15s] %(levelname)s: %(threadName)s: %(message)s')
     for t in all_tests:
         runtest(t)
 
