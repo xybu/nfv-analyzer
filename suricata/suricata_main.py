@@ -54,6 +54,7 @@ def runtest(testcase):
 
 
 def main():
+    logging.basicConfig(level=logging.DEBUG, format='[%(asctime)-15s] %(levelname)s: %(threadName)s: %(message)s')
     for t in all_tests:
         runtest(t)
 
