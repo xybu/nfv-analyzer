@@ -182,7 +182,7 @@ class ProcessSetMonitor:
                 self._subp = psutil.Popen(cmd)
             print('Info: spawned process %d.' % self._subp.pid, file=sys.stderr)
             if pids is None:
-                pids = set((self._subp.pid,))
+                pids = {self._subp.pid}
             else:
                 pids.add(self._subp.pid)
         
