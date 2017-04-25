@@ -46,7 +46,7 @@ class SuricataTest(suricata_base.SuritacaTestBase):
         self.delete_tmpdir()
         self.create_tmpdir()
         logging.info('Spawning resmon and suricata.')
-        self.sysmon_proc = self.shell.spawn(['resmon',
+        self.sysmon_proc = self.shell.spawn(['sudo', 'resmon',
                                              '--delay', str(self.stat_delay_sec),
                                              '--outfile', 'sysstat.receiver.csv',
                                              '--nic', self.remote_in_nic, '--nic-outfile', 'netstat.{nic}.csv',
