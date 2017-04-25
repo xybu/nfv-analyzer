@@ -10,8 +10,8 @@ from . import suricata_test
 
 swappiness = 10
 data_repo = models.DataRepository(repo_host='cap08.cs.purdue.edu', repo_user='bu1', repo_dir='/scratch2/bu1')
-receiver_host = models.ReceiverHost(host='ohio.cs.purdue.edu', user='bu1', nic='eth0', tmpdir_root='/tmp')
-sender_host = models.SenderHost(nic='eth0', tmpdir_root='/tmp')
+receiver_host = models.ReceiverHost(host='192.168.0.13', user='bu1', nic='enp34s0', tmpdir_root='/tmp')
+sender_host = models.SenderHost(nic='enp34s0', tmpdir_root='/tmp')
 
 SuricataTestCase = namedtuple('SuricataTestCase',
                               ('name',                  # Name of the test.
