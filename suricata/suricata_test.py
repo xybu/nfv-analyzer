@@ -47,7 +47,6 @@ class SuricataTest(suricata_base.SuritacaTestBase):
         self.delete_tmpdir()
         self.create_tmpdir()
         logging.info('Spawning resmon and suricata.')
-<<<<<<< HEAD
         with self.shell.open(os.path.join(self.remote_tmpdir, 'suricata_out.txt'), 'w') as f:
             self.sysmon_proc = self.shell.spawn(['sudo', 'resmon',
                                                  '--delay', str(self.stat_delay_sec),
@@ -59,18 +58,6 @@ class SuricataTest(suricata_base.SuritacaTestBase):
                                                  '-l', self.remote_tmpdir],
                                                  cwd=self.remote_tmpdir, store_pid=True, allow_error=True,
                                                  stdout=f, stderr=f)
-=======
-        self.sysmon_proc = self.shell.spawn(['sudo', 'resmon',
-                                             '--delay', str(self.stat_delay_sec),
-                                             '--outfile', 'sysstat.receiver.csv',
-                                             '--nic', self.remote_in_nic, '--nic-outfile', 'netstat.{nic}.csv',
-                                             '--ps-cmd', '--ps-cmd-outfile', 'psstat.suricata.csv',
-                                             '--', 'suricata', '--af-packet=%s' % self.remote_in_nic,
-                                             '-c', '/etc/suricata/%s' % self.suricata_config_file,
-                                             '-l', self.remote_tmpdir],
-                                            cwd=self.remote_tmpdir, store_pid=True, allow_error=True,
-                                            stdout=sys.stdout.buffer, stderr=sys.stdout.buffer)
->>>>>>> be0b58284dd94c0f2a2c0c3a96a720ba3ca6c6f3
         self.wait_for_suricata()
         test_result = self.test_iperf()
         self.sysmon_proc.send_signal(signal.SIGTERM)
