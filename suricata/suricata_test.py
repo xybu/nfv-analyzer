@@ -36,8 +36,8 @@ class SuricataTest(suricata_base.SuritacaTestBase):
         retval = subprocess.call(self.iperf_client_cmd, cwd=self.local_tmpdir)
         if retval != 0:
             logging.error('iperf client exit with %d. Command: \"%s\".', retval, self.iperf_client_cmd)
-        iperf_server_proc.terminate()
-        iperf_server_proc.wait()
+        iperf_server_proc.send_signal(signal.SIGTERM)
+        iperf_server_proc.wait_for_result()
         return retval
 
     def run(self):
@@ -47,7 +47,7 @@ class SuricataTest(suricata_base.SuritacaTestBase):
         self.delete_tmpdir()
         self.create_tmpdir()
         logging.info('Spawning resmon and suricata.')
-        with self.shell.open(os.path.join(self.remote_tmpdir, 'suricata_out.txt'), 'w') as f:
+        with self.shell.open(os.path.join(self.remote_tmpdir, 'suricata_out.txt'), 'wb') as f:
             self.sysmon_proc = self.shell.spawn(['sudo', 'resmon',
                                                  '--delay', str(self.stat_delay_sec),
                                                  '--outfile', 'sysstat.receiver.csv',
