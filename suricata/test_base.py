@@ -62,4 +62,4 @@ class TestBase:
 
     @classmethod
     def simple_cmd(cls, shell, cmd):
-        return shell.run(cmd, stdout=sys.stdout.buffer, stderr=sys.stdout.buffer, allow_error=True).return_code
+        return shell.run(cmd, allow_error=True).return_code

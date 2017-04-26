@@ -19,6 +19,8 @@ class SuritacaTestBase(test_base.TestBase):
 
     def __init__(self, remote_host, remote_user, local_out_nic, remote_in_nic, local_tmpdir, remote_tmpdir, data_repo):
         super().__init__()
+        self.remote_host = remote_host
+        self.remote_user = remote_user
         self.shell = self.get_remote_shell(remote_host, remote_user)
         self.local_out_nic = local_out_nic
         self.remote_in_nic = remote_in_nic
