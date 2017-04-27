@@ -17,23 +17,24 @@ class SuritacaTestBase(test_base.TestBase):
 
     ETHTOOL_ARGS = ('tso', 'gro', 'lro', 'gso', 'rx', 'tx', 'sg')
 
-    def __init__(self, remote_host, remote_user, local_out_nic, remote_in_nic, local_tmpdir, remote_tmpdir, data_repo):
+    def __init__(self, remote_host, remote_user, local_tmpdir, remote_tmpdir, data_repo):
         super().__init__()
         self.remote_host = remote_host
         self.remote_user = remote_user
-        self.shell = self.get_remote_shell(remote_host, remote_user)
-        self.local_out_nic = local_out_nic
-        self.remote_in_nic = remote_in_nic
         self.local_tmpdir = local_tmpdir
         self.remote_tmpdir = remote_tmpdir
         self.data_repo = data_repo
+        self.shell = self.get_remote_shell(remote_host, remote_user)
 
-    def setup_nics(self):
-        """ Configure the NICs to use for suricata. """
+    def setup_nic(self, nic, is_local=True):
+        """ Configure the NIC to use for suricata. """
         for optarg in self.ETHTOOL_ARGS:
-            subprocess.call(['sudo', 'ethtool', '-K', self.local_out_nic, optarg, 'off'])
-            self.simple_call(['sudo', 'ethtool', '-K', self.remote_in_nic, optarg, 'off'])
-        self.simple_call(['sudo', 'ifconfig', self.remote_in_nic, 'promisc'])
+            if is_local:
+                subprocess.call(['sudo', 'ethtool', '-K', nic, optarg, 'off'])
+            else:
+                self.simple_call(['sudo', 'ethtool', '-K', nic, optarg, 'off'])
+        if not is_local:
+            self.simple_call(['sudo', 'ifconfig', nic, 'promisc'])
 
     def delete_tmpdir(self):
         """ Delete temporary directories on local and remote hosts. """

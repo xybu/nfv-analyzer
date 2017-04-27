@@ -6,8 +6,8 @@ import collections
 
 DataRepository = collections.namedtuple('DataRepository', ('repo_host', 'repo_user', 'repo_dir'))
 
-ReceiverHost = collections.namedtuple('ReceiverHost', ('host', 'alt_host', 'user', 'nic', 'tmpdir_root'))
+ReceiverHost = collections.namedtuple('ReceiverHost', ('host', 'user', 'tmpdir_root'))
 
-SenderHost = collections.namedtuple('SenderHost', ('nic', 'tmpdir_root'))
+SenderHost = collections.namedtuple('SenderHost', ('tmpdir_root'))
 
-
+RemoteNic = collections.namedtuple('RemoteNic', ('nic', 'ip'))

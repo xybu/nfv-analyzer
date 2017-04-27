@@ -12,10 +12,10 @@
 vars:
   # more specifc is better for alert accuracy and performance
   address-groups:
-    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
+    #HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
     #HOME_NET: "[192.168.0.0/16]"
     #HOME_NET: "[10.0.0.0/8]"
-    #HOME_NET: "[172.16.0.0/12]"
+    HOME_NET: "[172.16.0.0/12]"
     #HOME_NET: "any"
 
     EXTERNAL_NET: "!$HOME_NET"
@@ -516,6 +516,27 @@ logging:
 # Linux high speed capture support
 af-packet:
   - interface: enp5s0f3
+    threads: 1
+    cluster-id: 94
+    cluster-type: cluster_flow
+    defrag: yes
+    rollover: yes
+    use-mmap: yes
+  - interface: enp5s0f2
+    threads: 1
+    cluster-id: 95
+    cluster-type: cluster_flow
+    defrag: yes
+    rollover: yes
+    use-mmap: yes
+  - interface: enp5s0f1
+    threads: 1
+    cluster-id: 96
+    cluster-type: cluster_flow
+    defrag: yes
+    rollover: yes
+    use-mmap: yes
+  - interface: default
     # Number of receive threads. "auto" uses the number of cores
     # XB: Default: commented out.
     threads: 1
@@ -542,9 +563,9 @@ af-packet:
     # After Linux kernel 3.10 it is possible to activate the rollover option: if a socket is
     # full then kernel will send the packet on the next socket with room available. This option
     # can minimize packet drop and increase the treated bandwidth on single intensive flow.
-    #rollover: yes
+    rollover: yes
     # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
-    #use-mmap: yes
+    use-mmap: yes
     # Lock memory map to avoid it goes to swap. Be careful that over suscribing could lock
     # your system
     #mmap-locked: yes
@@ -592,17 +613,9 @@ af-packet:
     #copy-mode: ips
     #copy-iface: eth1
 
-  # Put default values here. These will be used for an interface that is not
-  # in the list above.
-  - interface: default
-    #threads: auto
-    #use-mmap: no
-    #rollover: yes
-    #tpacket-v3: yes
-
 # Cross platform libpcap capture support
 pcap:
-  - interface: enp5s0f3
+  - interface: default
     # On Linux, pcap will try to use mmaped capture and will use buffer-size
     # as total of memory used by the ring. So set this to something bigger
     # than 1% of your bandwidth.
@@ -622,15 +635,12 @@ pcap:
     # may want to have the same number of capture threads as the number of capture
     # rings. In this case, set up the threads variable to N to start N threads
     # listening on the same interface.
-    #threads: 16
+    threads: 1
     # set to no to disable promiscuous mode:
     #promisc: no
     # set snaplen, if not set it defaults to MTU if MTU can be known
     # via ioctl call and to full capture if not.
     #snaplen: 1518
-  # Put default values here
-  - interface: default
-    #checksum-checks: auto
 
 # Settings for reading pcap files
 pcap-file:
@@ -927,7 +937,6 @@ host-mode: auto
 # If you are using the CUDA pattern matcher (mpm-algo: ac-cuda), different rules
 # apply. In that case try something like 60000 or more. This is because the CUDA
 # pattern matcher buffers and scans as many packets as possible in parallel.
-# XB: Default 1024, 1c1d=4096
 max-pending-packets: 4096
 
 # Runmode the engine should use. Please check --list-runmodes to get the available
