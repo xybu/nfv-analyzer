@@ -40,7 +40,8 @@ SuricataTestCase = namedtuple('SuricataTestCase',
                                'suricata_wrapper_cmd',  # Wrapper command to run Suricata (e.g., vtune).
                                'suricata_runmode',      # Runmode of Suricata. Either workers (default) or autofp.
                                'test_method',           # Either "tcpreplay" or "iperf".
-                               'tcpreplay_tracefile'    # Trace file for tcpreplay.
+                               'tcpreplay_tracefile',   # Trace file for tcpreplay.
+                               'enable_vtune',          # Enable vtune or not.
                                ))
 
 all_tests = []
@@ -109,13 +110,39 @@ all_tests = []
 
 # for recv_nics in (all_receiver_nics[:1],):
 #     # For each of the two thread models.
-#     for (suricata_runmode, conf_suffix) in (('autofp', '_af'), ('workers', '')):
-#         for suricata_conf in ('1c1d', '1c2d', '1c4d', #'1c8d',
-#                               '2c1d', '2c2d', '2c4d', '2c8d',
-#                               '4c1d', '4c2d', '4c4d', '4c8d', '4c16d',
-#                               '8c1d', '8c2d', '8c4d', '8c8d', '8c16d',
-#                               '16c16d', '16c32d'):
-#             for num_instances in (16, 8, 4):
+#     # for (suricata_runmode, conf_suffix) in (('autofp', ''), ('workers', '_af'), ('autofp', '_af'), ('workers', ''), ):
+#     for (suricata_runmode, conf_suffix) in (('workers', '_af'), ('autofp', '_af'), ('workers', ''), ):
+#         for num_instances in (16, 8, 4):
+#             for suricata_conf in ('1c1d', '1c2d', '1c4d', #'1c8d',
+#                                   '2c1d', '2c2d', '2c4d', '2c8d',
+#                                   '4c1d', '4c2d', '4c4d', '4c8d', '4c16d',
+#                                   '8c1d', '8c2d', '8c4d', '8c8d', '8c16d',
+#                                   '16c16d', '16c32d'):
+#                 t = SuricataTestCase(name='%s_%s_snort.log_%s_%d_%dnics' % (suricata_conf, conf_suffix, suricata_runmode, num_instances, len(recv_nics)), stat_delay_sec=2,
+#                                      suricata_config_file='suricata_%s.yaml' % (suricata_conf + conf_suffix),
+#                                      iperf_nics=recv_nics,
+#                                      # We need more than one instance only when CPU usage of iperf process reaches 100%.
+#                                      iperf_instances=num_instances,
+#                                      iperf_server_args=(),
+#                                      iperf_client_args=(),
+#                                      test_method='tcpreplay',
+#                                      tcpreplay_tracefile='traces/snort.log.1425823194',
+#                                      enable_suricata=True,
+#                                      suricata_runmode=suricata_runmode,
+#                                      suricata_wrapper_cmd=(),
+#                                      enable_vtune=False)
+#                 all_tests.append(t)
+#             all_tests.append(None) # Reboot.
+
+# for recv_nics in (all_receiver_nics[:2],):
+#     # For each of the two thread models.
+#     # for (suricata_runmode, conf_suffix) in (('autofp', '_af'), ('workers', '')):
+#     for (suricata_runmode, conf_suffix) in (('workers', ''),):
+#         for num_instances in (8, 4):
+#             for suricata_conf in ('1c1d', '1c2d', '1c4d',
+#                                   '2c1d', '2c2d', '2c4d',
+#                                   '4c1d', '4c2d', '4c4d', '4c8d',
+#                                   '8c1d', '8c2d', '8c4d', '8c8d', '8c16d'):
 #                 t = SuricataTestCase(name='%s_snort.log_%s_%d_%dnics' % (suricata_conf, suricata_runmode, num_instances, len(recv_nics)), stat_delay_sec=2,
 #                                      suricata_config_file='suricata_%s.yaml' % (suricata_conf + conf_suffix),
 #                                      iperf_nics=recv_nics,
@@ -127,21 +154,23 @@ all_tests = []
 #                                      tcpreplay_tracefile='traces/snort.log.1425823194',
 #                                      enable_suricata=True,
 #                                      suricata_runmode=suricata_runmode,
-#                                      suricata_wrapper_cmd=())
+#                                      suricata_wrapper_cmd=(),
+#                                      enable_vtune=False)
 #                 all_tests.append(t)
+#             all_tests.append(None) # Reboot.
 
-all_tests.append(None) # Reboot.
 
-for recv_nics in (all_receiver_nics[:2],):
+# Integrate with vtune.
+# for recv_nics in (all_receiver_nics[:1], all_receiver_nics[:2]):
+for recv_nics in (all_receiver_nics[:2], ):
     # For each of the two thread models.
-    # for (suricata_runmode, conf_suffix) in (('autofp', '_af'), ('workers', '')):
-    for (suricata_runmode, conf_suffix) in (('workers', ''),):
-        for suricata_conf in (#'1c1d', '1c2d', '1c4d',
-                              #'2c1d', '2c2d', '2c4d',
-                              #'4c1d', '4c2d', '4c4d', '4c8d',
-                              '8c1d', '8c2d', '8c4d', '8c8d', '8c16d'):
-            for num_instances in (8, 4):
-                t = SuricataTestCase(name='%s_snort.log_%s_%d_%dnics' % (suricata_conf, suricata_runmode, num_instances, len(recv_nics)), stat_delay_sec=2,
+    for (suricata_runmode, conf_suffix) in (('autofp', '_af'), ('workers', '')):
+        for num_instances in (16, 8, 4):
+            for suricata_conf in (#'4c4d', '4c8d',
+                                  '8c1d', '8c2d', '8c4d', '8c8d',
+                                  #'16c8d', '16c16d'
+                                 ):
+                t = SuricataTestCase(name='%s_snort.log_%s_%d_%dnics_vtune' % (suricata_conf, suricata_runmode, num_instances, len(recv_nics)), stat_delay_sec=2,
                                      suricata_config_file='suricata_%s.yaml' % (suricata_conf + conf_suffix),
                                      iperf_nics=recv_nics,
                                      # We need more than one instance only when CPU usage of iperf process reaches 100%.
@@ -152,8 +181,10 @@ for recv_nics in (all_receiver_nics[:2],):
                                      tcpreplay_tracefile='traces/snort.log.1425823194',
                                      enable_suricata=True,
                                      suricata_runmode=suricata_runmode,
-                                     suricata_wrapper_cmd=())
+                                     suricata_wrapper_cmd=('/opt/intel/vtune_amplifier_xe_2017.2.0.499904/bin64/amplxe-cl', '-collect', 'locksandwaits'),
+                                     enable_vtune=True)
                 all_tests.append(t)
+            all_tests.append(None) # Reboot.
 
 
 def runtest(testcase, iter_id):
@@ -178,11 +209,13 @@ def runtest(testcase, iter_id):
                                         enable_suricata=testcase.enable_suricata,
                                         suricata_config_file=testcase.suricata_config_file,
                                         suricata_runmode=testcase.suricata_runmode,
+                                        suricata_wrapper_cmd=testcase.suricata_wrapper_cmd,
                                         iperf_instances=testcase.iperf_instances,
                                         iperf_server_args=testcase.iperf_server_args,
                                         iperf_client_args=testcase.iperf_client_args,
                                         test_method=testcase.test_method,
-                                        tcpreplay_tracefile=testcase.tcpreplay_tracefile)
+                                        tcpreplay_tracefile=testcase.tcpreplay_tracefile,
+                                        enable_vtune=testcase.enable_vtune)
     tester.run()
     logging.info('Completed test case "%s" iteration %d.', testcase.name, iter_id)
 

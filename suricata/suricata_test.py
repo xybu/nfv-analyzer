@@ -23,7 +23,7 @@ class SuricataTest(suricata_base.SuritacaTestBase):
     def __init__(self, remote_host, remote_user, remote_nics, local_tmpdir, remote_tmpdir, data_repo,
                  swappiness=5, stat_delay_sec=1, enable_suricata=True, suricata_config_file='suricata.yaml', suricata_runmode='workers',
                  iperf_instances=2, iperf_server_args=(), iperf_client_args=(), suricata_wrapper_cmd=(),
-                 test_method='iperf', tcpreplay_tracefile=None):
+                 test_method='iperf', tcpreplay_tracefile=None, enable_vtune=False):
         super().__init__(remote_host, remote_user, local_tmpdir, remote_tmpdir, data_repo)
         self.adjust_swappiness(swappiness)
         self.stat_delay_sec = stat_delay_sec
@@ -37,6 +37,7 @@ class SuricataTest(suricata_base.SuritacaTestBase):
         self.enable_suricata = enable_suricata
         self.test_method = test_method
         self.tcpreplay_tracefile = tcpreplay_tracefile
+        self.enable_vtune = enable_vtune
 
     def pre_cleanup(self):
         self.simple_call(['sudo', 'pkill', '-9', 'iperf3'])
@@ -44,6 +45,9 @@ class SuricataTest(suricata_base.SuritacaTestBase):
         self.simple_call(['sudo', 'pkill', '-9', 'Suricata-Main'])
         subprocess.call(['sudo', 'pkill', '-9', 'iperf3'])
         subprocess.call(['sudo', 'pkill', '-9', 'tcpreplay'])
+        if self.enable_vtune:
+            # self.simple_call(['source', '/opt/intel/vtune_amplifier_xe_2017.2.0.499904/amplxe-vars.sh'])
+            self.simple_call(['sudo', 'bash', '-c', 'echo 0 | tee /proc/sys/kernel/yama/ptrace_scope'])
 
     def post_cleanup(self):
         self.close()
@@ -123,33 +127,58 @@ class SuricataTest(suricata_base.SuritacaTestBase):
         self.delete_tmpdir()
         self.create_tmpdir()
         self.pre_cleanup()
+        
         if self.enable_suricata:
             logging.info('Spawning resmon and suricata.')
             suricata_cmd = ['suricata', '-c', '/etc/suricata/%s' % self.suricata_config_file,
                             '-l', self.remote_tmpdir, '--runmode', self.suricata_runmode]
+            suricata_cmd_args = {
+                'cwd': self.remote_tmpdir,
+                'store_pid': True,
+                'allow_error': True,
+                # 'stdout': sys.stdout.buffer,
+                # 'stderr': sys.stderr.buffer,
+            }
             for remote_nic in self.remote_nics:
                 suricata_cmd.extend(['-i', remote_nic.nic])
             if self.suricata_wrapper_cmd is not None and len(self.suricata_wrapper_cmd):
-                suricata_cmd = list(self.suricata_wrapper_cmd) + suricata_cmd
+                cmd = list(self.suricata_wrapper_cmd)
+                if self.enable_vtune:
+                    cmd.extend(['-result-dir', os.path.join(self.remote_tmpdir, 'vtune'), '--'])
+                cmd.extend(suricata_cmd)
+                suricata_cmd = cmd
+                suricata_cmd_args['update_env'] = {
+                    'VTUNE_AMPLIFIER_XE_2017_DIR': '/opt/intel/vtune_amplifier_xe_2017.2.0.499904',
+                    'PATH': '/opt/intel/vtune_amplifier_xe_2017.2.0.499904/bin64:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin'
+                }
             logging.info('Suricata command: "%s"', ' '.join(suricata_cmd))
             self.sysmon_proc = self.shell.spawn(['sudo', 'resmon',
                                                  '--delay', str(self.stat_delay_sec),
                                                  '--outfile', 'sysstat.receiver.csv',
                                                  '--ps-cmd', '--ps-cmd-outfile', 'psstat.suricata.csv',
-                                                 '--'] + suricata_cmd,
-                                                 cwd=self.remote_tmpdir, store_pid=True, allow_error=True)
+                                                 '--'] + suricata_cmd, **suricata_cmd_args)
+            time.sleep(1)
+            if not self.sysmon_proc.is_running():
+                logging.critical('Test failed!')
+                self.post_cleanup()
+                return
             self.wait_for_suricata()
+        
         if self.test_method == 'iperf':
             test_result = self.test_iperf()
         elif self.test_method == 'tcpreplay':
             test_result = self.test_tcpreplay()
+
         if self.enable_suricata:
-            self.sysmon_proc.send_signal(signal.SIGTERM)
-            self.sysmon_proc.wait_for_result()
+            if self.enable_vtune:
+                subprocess.call(['ssh', '%s@%s' % (self.remote_user, self.remote_host), 'pkill', '-15', 'Suricata-Main'])
+            # self.sysmon_proc.send_signal(signal.SIGTERM)
+            # self.sysmon_proc.wait_for_result()
             subprocess.call(['ssh', '%s@%s' % (self.remote_user, self.remote_host), 'pkill', '-15', 'resmon'])
             while subprocess.call(['ssh', '%s@%s' % (self.remote_user, self.remote_host), 'ps', '-p', str(self.sysmon_proc.pid)]) == 0:
                 logging.info('Waiting for 1 second for resmon to stop.')
                 time.sleep(1)
+
         if test_result == 0:
             self.commit_local_dir(self.local_tmpdir, self.data_repo.repo_user, self.data_repo.repo_host, self.data_repo.repo_dir)
             self.commit_remote_dir(self.remote_tmpdir, self.data_repo.repo_user, self.data_repo.repo_host, self.data_repo.repo_dir)
